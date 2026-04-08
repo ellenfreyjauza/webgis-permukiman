@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebGIS Bangunan Permukiman</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.css" rel="stylesheet">
+
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 0;
+      padding-top: 56px;
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+    }
+
+    .hero {
+      background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+      color: white;
+      text-align: center;
+      padding: 60px 20px;
+      position: sticky;
+      top: 56px;
+      z-index: 1020;
+    }
+
+    .hero h1 {
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+
+    .content-section {
+      margin: 30px 0;
+    }
+
+    .info-box,
+    .map-box {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+      height: 100%;
+    }
+
+    .info-box h4,
+    .map-box h4 {
+      font-weight: 700;
+      margin-bottom: 18px;
+    }
+
+    .info-box ol {
+      padding-left: 18px;
+    }
+
+    .info-box li {
+      margin-bottom: 10px;
+      line-height: 1.6;
+    }
+
+    .map-wrapper {
+      position: relative;
+    }
+
+    #map {
+      width: 100%;
+      height: 600px;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .btn-fly {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 2;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .legend {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      z-index: 2;
+      background: rgba(255, 255, 255, 0.96);
+      padding: 12px 14px;
+      border-radius: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .legend-title {
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+
+    .legend-color {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 8px;
+      background-color: #f97316;
+      border: 1px solid #c2410c;
+      vertical-align: middle;
+    }
+
+    .status-box {
+      margin-top: 15px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      background: #fff3cd;
+      color: #664d03;
+      border: 1px solid #ffecb5;
+    }
+
+    footer {
+      background-color: #212529;
+      color: white;
+      text-align: center;
+      padding: 14px 10px;
+      margin-top: 30px;
+    }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <i class="fa-solid fa-map-location-dot me-2"></i>WebGIS Bangunan
+      </a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="container">
+      <h1>Peta Sebaran Bangunan Permukiman</h1>
+      <p>Visualisasi hasil digitasi bangunan permukiman berbasis WebGIS</p>
+    </div>
+  </header>
+
+  <main class="container content-section">
+    <div class="row g-4">
+      <div class="col-lg-3">
+        <div class="info-box">
+          <h4>Petunjuk</h4>
+          <ol>
+            <li>Gunakan scroll mouse untuk zoom in dan zoom out.</li>
+            <li>Klik dan tahan peta untuk menggeser tampilan.</li>
+            <li>Klik polygon bangunan untuk melihat atribut.</li>
+            <li>Tekan tombol <b>Kembali ke Lokasi</b> untuk kembali ke area data.</li>
+          </ol>
+
+          <hr>
+
+          <h5>Informasi Layer</h5>
+          <p class="mb-1"><b>Nama Layer:</b> Permukiman</p>
+          <p class="mb-1"><b>Geometri:</b> Polygon</p>
+          <p class="mb-0"><b>Keterangan:</b> Permukiman</p>
+
+          <div id="status" class="status-box mt-3">
+            Status: menunggu peta dimuat...
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-9">
+        <div class="map-box">
+          <h4>Peta</h4>
+
+          <div class="map-wrapper">
+            <button class="btn btn-primary btn-fly" onclick="kembaliKeLokasi()">
+              <i class="fa-solid fa-location-crosshairs me-1"></i>Kembali ke Lokasi
+            </button>
+
+            <div id="map"></div>
+
+            <div class="legend">
+              <div class="legend-title">Legenda</div>
+              <div><span class="legend-color"></span>Bangunan Permukiman</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    © 2026 WebGIS Bangunan Permukiman
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://api.mapbox.com/mapbox-gl-js/v3.4.0/mapbox-gl.js"></script>
+
+  <script>
+    mapboxgl.accessToken = 'pk.eyJ1IjoiZWxsZW5mcmV5amF1emFhIiwiYSI6ImNtbnBvZDd0bjJrMmYyb29vZXhrcmMycXcifQ.K1Mt6Dg-PwyUlsb4NiypmQ';
+
+    const geojsonPath = './Assets/geojson/Permukiman.geojson';
+    const centerAwal = [110.3671, -7.8014];
+    const zoomAwal = 16;
+
+    const statusBox = document.getElementById('status');
+    let dataGeojsonGlobal = null;
+
+    function setStatus(text, isError = false) {
+      statusBox.textContent = text;
+
+      if (isError) {
+        statusBox.style.background = '#f8d7da';
+        statusBox.style.color = '#842029';
+        statusBox.style.border = '1px solid #f5c2c7';
+      } else {
+        statusBox.style.background = '#d1e7dd';
+        statusBox.style.color = '#0f5132';
+        statusBox.style.border = '1px solid #badbcc';
+      }
+    }
+
+    function hitungBoundsDariGeoJSON(data) {
+      const bounds = new mapboxgl.LngLatBounds();
+
+      if (!data || !data.features) return bounds;
+
+      data.features.forEach(feature => {
+        if (!feature.geometry) return;
+
+        const geometry = feature.geometry;
+
+        if (geometry.type === 'Polygon') {
+          geometry.coordinates.forEach(ring => {
+            ring.forEach(coord => bounds.extend(coord));
+          });
+        } else if (geometry.type === 'MultiPolygon') {
+          geometry.coordinates.forEach(polygon => {
+            polygon.forEach(ring => {
+              ring.forEach(coord => bounds.extend(coord));
+            });
+          });
+        }
+      });
+
+      return bounds;
+    }
+
+    function kembaliKeLokasi() {
+      if (dataGeojsonGlobal) {
+        const bounds = hitungBoundsDariGeoJSON(dataGeojsonGlobal);
+
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, {
+            padding: 40,
+            duration: 1000
+          });
+          return;
+        }
+      }
+
+      map.flyTo({
+        center: centerAwal,
+        zoom: zoomAwal,
+        essential: true
+      });
+    }
+
+    async function loadGeoJSON() {
+      try {
+        setStatus('Status: membaca file GeoJSON...');
+
+        const response = await fetch(`${geojsonPath}?v=${Date.now()}`);
+        if (!response.ok) {
+          throw new Error('File GeoJSON tidak ditemukan di: ' + geojsonPath);
+        }
+
+        const data = await response.json();
+
+        if (!data || data.type !== 'FeatureCollection') {
+          throw new Error('Format GeoJSON tidak valid. Harus berupa FeatureCollection.');
+        }
+
+        if (!Array.isArray(data.features)) {
+          throw new Error('Property "features" tidak ditemukan atau bukan array.');
+        }
+
+        if (data.features.length === 0) {
+          throw new Error('GeoJSON berhasil dibaca, tetapi tidak ada feature di dalamnya.');
+        }
+
+        dataGeojsonGlobal = data;
+        setStatus('Status: GeoJSON berhasil dibaca. Jumlah feature: ' + data.features.length);
+
+        if (map.getLayer('Permukiman-fill')) map.removeLayer('Permukiman-fill');
+        if (map.getLayer('Permukiman-outline')) map.removeLayer('Permukiman-outline');
+        if (map.getSource('Permukiman')) map.removeSource('Permukiman');
+
+        map.addSource('Permukiman', {
+          type: 'geojson',
+          data: data
+        });
+
+        map.addLayer({
+          id: 'Permukiman-fill',
+          type: 'fill',
+          source: 'Permukiman',
+          paint: {
+            'fill-color': '#f97316',
+            'fill-opacity': 0.75
+          }
+        });
+
+        map.addLayer({
+          id: 'Permukiman-outline',
+          type: 'line',
+          source: 'Permukiman',
+          paint: {
+            'line-color': '#c2410c',
+            'line-width': 1.5
+          }
+        });
+
+        map.on('click', 'Permukiman-fill', function (e) {
+          const properties = e.features[0].properties || {};
+          let isiAtribut = '';
+
+          for (const key in properties) {
+            isiAtribut += `<p style="margin:0 0 6px 0;"><b>${key}</b>: ${properties[key]}</p>`;
+          }
+
+          new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div style="font-family: Arial, sans-serif; min-width: 180px;">
+                <h6 style="margin-bottom: 8px;">Informasi Bangunan</h6>
+                ${isiAtribut || '<p style="margin:0;">Tidak ada atribut</p>'}
+              </div>
+            `)
+            .addTo(map);
+        });
+
+        map.on('mouseenter', 'Permukiman-fill', function () {
+          map.getCanvas().style.cursor = 'pointer';
+        });
+
+        map.on('mouseleave', 'Permukiman-fill', function () {
+          map.getCanvas().style.cursor = '';
+        });
+
+        const bounds = hitungBoundsDariGeoJSON(data);
+
+        if (!bounds.isEmpty()) {
+          map.fitBounds(bounds, { padding: 40 });
+          setStatus('Status: layer Permukiman berhasil ditampilkan.');
+        } else {
+          setStatus('Status: GeoJSON terbaca, tetapi bounds kosong. Cek geometri polygon.', true);
+        }
+
+      } catch (error) {
+        console.error('ERROR DEBUG:', error);
+        setStatus('Gagal: ' + error.message, true);
+      }
+    }
+
+    const map = new mapboxgl.Map({
+      container: 'map',
+      style: 'mapbox://styles/mapbox/streets-v12',
+      center: centerAwal,
+      zoom: zoomAwal
+    });
+
+    map.addControl(new mapboxgl.NavigationControl(), 'top-left');
+
+    map.on('load', loadGeoJSON);
+
+    map.on('error', function (e) {
+      console.error('Mapbox error:', e);
+    });
+  </script>
+</body>
+</html>
